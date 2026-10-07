@@ -1,0 +1,13 @@
+// Detection: Encoded PowerShell Execution
+// MITRE ATT&CK: T1059.001, T1027
+// See: detections/encoded-powershell.md
+
+index=windows (EventCode=4688 OR EventCode=1)
+| eval cmd=coalesce(CommandLine, Process_Command_Line)
+| where match(cmd, "(?i)-enc(odedcommand)?\s")
+| eval parent=coalesce(ParentImage, Creator_Process_Name)
+| table _time, source, cmd, parent
+
+// Follow-up: pull the decoded script block for a specific finding
+// index=windows EventCode=4104 Message="*<keyword from decoded script>*"
+// | table _time, Message

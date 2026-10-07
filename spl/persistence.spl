@@ -1,0 +1,14 @@
+// Detection: Scheduled Task Created by a Human User Account
+// MITRE ATT&CK: T1053.005
+// See: detections/scheduled-task.md
+
+index=windows source="WinEventLog:Security" EventCode=4698
+| eval Creator=mvindex(Account_Name,-1)
+| where Creator!="WIN-LAB-01$"
+| rex field=Message "Task Name: \s+(?<TaskName>\S+)"
+| rex field=Message "<Command>(?<ExecCommand>[^<]+)</Command>"
+| rex field=Message "<UserId>(?<RunAsSID>[^<]+)</UserId>"
+| table _time, Creator, TaskName, ExecCommand, RunAsSID
+
+// Note: replace "WIN-LAB-01$" with your own <HOSTNAME>$ machine account
+// when reusing this query in a different environment.

@@ -1,0 +1,46 @@
+// Detection: New Local Account Creation
+// MITRE ATT&CK: T1136.001
+// See: detections/new-user.md
+index=windows source="WinEventLog:Security" EventCode=4720
+| eval Actor=mvindex(Account_Name,0), Target=mvindex(Account_Name,-1)
+| table _time, Actor, Target
+
+// ---
+
+// Detection: New Account Escalated to Privileged Group
+// MITRE ATT&CK: T1136.001, T1098
+// See: detections/privileged-group-change.md
+index=windows source="WinEventLog:Security" EventCode=4732 Group_Name!="Users"
+| eval Actor=mvindex(Account_Name,0)
+| join Actor [
+    search index=windows source="WinEventLog:Security" EventCode=4720
+    | eval Actor=mvindex(Account_Name,0), Target=mvindex(Account_Name,-1)
+    | eval created_time=_time
+    | table Actor, Target, created_time
+  ]
+| eval gap_seconds=round((_time - created_time), 1)
+| where gap_seconds < 60
+| table _time, Actor, Target, Group_Name, created_time, gap_seconds
+
+// ---
+
+// Detection: Binary Identity Masquerading
+// MITRE ATT&CK: T1036, T1036.003
+// See: detections/suspicious-process.md
+index=windows source="WinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1
+| where isnotnull(OriginalFileName) AND OriginalFileName!="-"
+| eval image_name=lower(replace(Image, ".*\\\\", ""))
+| eval claimed_name=lower(if(match(OriginalFileName, "\.[a-zA-Z0-9]+$"), OriginalFileName, OriginalFileName+".exe"))
+| where image_name!=claimed_name
+| where NOT match(Image, "(?i)SplunkUniversalForwarder|EdgeUpdate|SoftwareDistribution|UsoClient")
+| table _time, Image, OriginalFileName, ParentImage, User
+
+// ---
+
+// Detection: Suspicious Office-to-Shell Parent/Child Relationship
+// MITRE ATT&CK: T1059.001
+// See: detections/suspicious-process.md
+index=windows source="WinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1
+| where match(lower(ParentImage), "winword\.exe|excel\.exe|powerpnt\.exe|outlook\.exe")
+| where match(lower(Image), "powershell\.exe|cmd\.exe|wscript\.exe|cscript\.exe|mshta\.exe")
+| table _time, ParentImage, Image, CommandLine, User

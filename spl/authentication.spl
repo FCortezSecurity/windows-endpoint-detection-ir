@@ -1,0 +1,17 @@
+// Detection: Multiple Failed Logons Followed by Success
+// MITRE ATT&CK: T1110, T1110.001, T1078
+// See: detections/failed-login-success.md
+
+index=windows source="WinEventLog:Security" EventCode=4625
+| eval user=mvindex(Account_Name,-1)
+| bucket _time span=5m
+| stats count as fail_count, earliest(_time) as first_fail, latest(_time) as last_fail by user, _time
+| where fail_count >= 3
+| join user [
+    search index=windows source="WinEventLog:Security" EventCode=4624
+    | eval user=mvindex(Account_Name,-1)
+    | eval success_time=_time
+    | table user, success_time
+  ]
+| where success_time > last_fail AND success_time < last_fail + 300
+| table user, fail_count, first_fail, last_fail, success_time
