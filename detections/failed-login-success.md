@@ -78,5 +78,12 @@ telemetry source that detected the attack, and even it could not reliably
 confirm the true origin address — a meaningful visibility gap documented
 further in `docs/lessons-learned.md`.
 
-See full incident narrative: `investigations/INC-001-brute-force.md`.
-See screenshots: `28-brute-force-detection.png`, `29-source-ip-quirk-sysmon-gap.png`.
+See full incident narrative: [`investigations/INC-001-brute-force.md`](../investigations/INC-001-brute-force.md).
+
+## Evidence
+
+![Source IP attribution quirk for NTLM-authenticated SMB logons](../screenshots/29-source-ip-quirk.png)
+*Every failed logon recorded the Windows host's own address instead of the true attacker IP — a known NTLM auditing limitation on non-domain hosts.*
+
+![Sysmon network visibility gap during the same attack window](../screenshots/29-source-ip-quirk-sysmon-gap.png)
+*Sysmon Event ID 3 logged other traffic during this exact window but captured zero events for the inbound SMB connection — the default config excludes file-sharing ports from network logging.*

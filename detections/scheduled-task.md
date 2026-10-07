@@ -81,5 +81,13 @@ correctly attributed the human creator while the task itself was configured
 to execute with SYSTEM privileges on next logon, a genuine
 privilege-escalation-via-persistence pattern.
 
-See screenshots: `41-scenario5-task-creation-baseline.png`,
-`42-scenario5-schtasks-process.png`, `43-scenario5-detection-filtered.png`.
+## Evidence
+
+![Scheduled task creation baseline: legitimate Windows Update tasks alongside the simulated one](../screenshots/41-scenario5-task-creation-baseline.png)
+*Three legitimate `UpdateOrchestrator` tasks created by the machine account, next to the simulated `WindowsUpdateHelper` task created by `lab-user`.*
+
+![schtasks.exe process creation showing the full command](../screenshots/42-scenario5-schtasks-process.png)
+*The full `/create ... /ru SYSTEM` command line — a standard user creating a task configured to run as SYSTEM.*
+
+![Tuned detection isolating the human-created task](../screenshots/43-scenario5-detection-filtered.png)
+*Filtering out the machine-account noise leaves exactly one reviewable row: creator, task name, command, and the privilege it's configured to run as.*

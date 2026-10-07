@@ -161,6 +161,31 @@ detections can be more robust than identity/metadata-based ones for some
 technique categories.
 
 --------------------------------------------------
+SCREENSHOT EVIDENCE
+--------------------------------------------------
+
+![Masqueraded binary spawning PowerShell](../screenshots/38-scenario4-process-chain.png)
+The two linked Sysmon events: WINWORD.EXE (OriginalFileName: Cmd.Exe)
+spawning real powershell.exe as a child process.
+
+![Masquerading detection v1 - 17 false positives](../screenshots/39a-masquerading-detection-v1-false-positives.png)
+First iteration. Sentinel "-" values and legitimate installer renaming
+both slipped through the filter.
+
+![Masquerading detection v2 - narrowed to 2](../screenshots/39b-masquerading-detection-v2-partial-fix.png)
+After excluding known noise sources. UsoClient still false-positives due
+to a missing file extension in its compiled metadata.
+
+![Masquerading detection v3 - final, tuned](../screenshots/39c-masquerading-detection-v3-final.png)
+One true positive on the original 15-minute test window, after
+normalizing the extension comparison logic.
+
+![Parent/child detection - clean on first attempt](../screenshots/40-scenario4-parentchild-detection.png)
+The behavioral detection required no tuning, illustrating that
+relationship-based detections can be more robust than identity/metadata
+comparisons for some technique categories.
+
+--------------------------------------------------
 MITRE ATT&CK
 --------------------------------------------------
 

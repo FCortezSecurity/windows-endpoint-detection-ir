@@ -171,6 +171,22 @@ RECOMMENDED RESPONSE
    in addition to credential-guessing attacks.
 
 --------------------------------------------------
+SCREENSHOT EVIDENCE
+--------------------------------------------------
+
+![Source IP attribution quirk](../screenshots/29-source-ip-quirk.png)
+Every failed and successful logon for svc-backup recorded the Windows
+host's own address rather than the true attacker IP - a known NTLM
+auditing limitation on non-domain-joined hosts (see TELEMETRY FINDINGS
+above).
+
+![Sysmon network visibility gap](../screenshots/29-source-ip-quirk-sysmon-gap.png)
+Sysmon Event ID 3 logged 20 other network connections during this exact
+window but captured zero events for the inbound SMB traffic from Kali -
+the default SwiftOnSecurity configuration excludes file-sharing ports
+from network logging.
+
+--------------------------------------------------
 VALIDATION
 --------------------------------------------------
 

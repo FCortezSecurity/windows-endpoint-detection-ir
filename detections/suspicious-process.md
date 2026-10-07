@@ -93,9 +93,21 @@ binary) would still be caught by the other.
 
 See full incident narrative, including the complete false-positive
 iteration history:
-`investigations/INC-002-masquerading-parentchild.md`.
-See screenshots: `38-scenario4-process-chain.png`,
-`39a-masquerading-detection-v1-false-positives.png`,
-`39b-masquerading-detection-v2-partial-fix.png`,
-`39c-masquerading-detection-v3-final.png`,
-`40-scenario4-parentchild-detection.png`.
+[`investigations/INC-002-masquerading-parentchild.md`](../investigations/INC-002-masquerading-parentchild.md).
+
+## Evidence
+
+![The masquerading incident: a renamed cmd.exe spawning real powershell.exe](../screenshots/38-scenario4-process-chain.png)
+*Two linked Sysmon events: `WINWORD.EXE` (actually `cmd.exe`, per `OriginalFileName`) spawning genuine `powershell.exe` as a child.*
+
+![Masquerading detection v1: 17 false positives](../screenshots/39a-masquerading-detection-v1-false-positives.png)
+*First attempt — sentinel `"-"` values and legitimate installer renaming both slipped through.*
+
+![Masquerading detection v2: narrowed to 2 results](../screenshots/39b-masquerading-detection-v2-partial-fix.png)
+*After excluding known noise sources — `UsoClient` still false-positives due to a missing file extension in its metadata.*
+
+![Masquerading detection v3: the final, tuned query](../screenshots/39c-masquerading-detection-v3-final.png)
+*One true positive on the original test window, after normalizing the extension comparison.*
+
+![Parent/child detection: clean on the first attempt](../screenshots/40-scenario4-parentchild-detection.png)
+*The behavioral detection (Office-class parent spawning a shell) required no tuning — this pairing essentially never occurs legitimately.*

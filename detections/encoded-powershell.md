@@ -76,6 +76,16 @@ including legitimate administrative commands run by the analyst
 (e.g., `Add-LocalGroupMember`). A production detection must pattern-match
 on the encoding indicator itself, not merely the presence of a 4104 event.
 
-See screenshots: `30-encoded-command-process.png`,
-`31-encoded-command-decoded-4104.png`, `32-sysmon-4104-noise-baseline.png`,
-`33-encoded-powershell-detection-query.png`.
+## Evidence
+
+![Obfuscated -EncodedCommand visible in Security 4688 and Sysmon Event 1](../screenshots/30-encoded-command-process.png)
+*The process-level view: only the opaque Base64 blob is visible, in both sources.*
+
+![PowerShell 4104 reconstructing the full decoded script](../screenshots/31-encoded-command-decoded-4104.png)
+*The same execution, decoded. Windows' own Script Block Logging defeats the obfuscation regardless of encoding.*
+
+![4104 also captures routine, legitimate PowerShell activity](../screenshots/32-sysmon-4104-noise-baseline.png)
+*Baseline noise — module loading and an unrelated administrative command — showing why presence of a 4104 event alone isn't a signal.*
+
+![Final detection query isolating the two encoded executions](../screenshots/33-encoded-powershell-detection-query.png)
+*The tuned detection query correctly matching both test executions, cross-validated by Security and Sysmon timestamps 4ms apart.*

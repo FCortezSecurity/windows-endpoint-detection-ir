@@ -73,5 +73,13 @@ plain text in both the Security 4688 command line and the Sysmon
 real exposure worth flagging in hardening recommendations, independent of
 whether the account creation itself was malicious.
 
-See screenshots: `21-account-creation-baseline.png`,
-`25-net-user-security-events.png`, `26-net-user-sysmon.png`.
+## Evidence
+
+![Baseline legitimate account creation: 4720 and 4732 for lab-user](../screenshots/21-account-creation-baseline.png)
+*Legitimate account provisioning captured organically during initial lab setup — the reference pattern for comparison against simulated incidents.*
+
+![net user / net1 account creation sequence in Security logs](../screenshots/25-net-user-security-events.png)
+*4720 (created), 4722 (enabled), and 4724 (password set) for a test account created via `net user`.*
+
+![Corresponding process-level view in Sysmon](../screenshots/26-net-user-sysmon.png)
+*`net.exe` handing off to `net1.exe`, with the plaintext password visible in the command line — a real exposure worth flagging independent of intent.*

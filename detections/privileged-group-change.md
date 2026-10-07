@@ -78,5 +78,13 @@ The two sources corroborating the same timing gap through entirely
 different telemetry paths is strong evidence of a single, deliberate,
 scripted action rather than coincidental manual steps.
 
-See screenshots: `34-scenario3-account-created.png`,
-`35-scenario3-process-chain.png`, `36-scenario3-detection-query.png`.
+## Evidence
+
+![Simulated incident: account creation followed by privilege escalation](../screenshots/34-scenario3-account-created.png)
+*4720/4732 events for `backup-svc2` — a name deliberately chosen to resemble the legitimate `svc-backup` account — escalated to Administrators 5.2 seconds after creation.*
+
+![Process-level confirmation of the same sequence](../screenshots/35-scenario3-process-chain.png)
+*`net.exe`/`net1.exe` pairs for both the account creation and the group add, same user and session, 5 seconds apart — consistent with scripted rather than manual administration.*
+
+![Tuned detection isolating the escalation, excluding default Users-group noise](../screenshots/36-scenario3-detection-query.png)
+*The single true-positive row, after excluding the automatic "Users" group enrollment that every new account receives.*
