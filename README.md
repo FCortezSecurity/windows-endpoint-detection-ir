@@ -12,41 +12,7 @@ report the way a SOC analyst would.
 
 ## Architecture
 
-```
-                         ┌─────────────────────────────┐
-                         │       YOU / SOC ANALYST     │
-                         │  Search • Detect • Hunt     │
-                         │  Investigate • Respond      │
-                         └──────────────┬──────────────┘
-                                        │
-                                        ▼
-                              ┌──────────────────┐
-                              │      SPLUNK      │
-                              │      SIEM        │
-                              │ • Search logs    │
-                              │ • SPL detections │
-                              │ • Correlation    │
-                              │ • Investigation  │
-                              └────────┬─────────┘
-                                       ▲
-                              Windows telemetry
-                                       │
-                    ┌──────────────────┴─────────────────┐
-          ┌─────────┴─────────┐                ┌─────────┴──────────┐
-          │   WINDOWS VM      │                │     SYSMON         │
-          │   ENDPOINT        │◄───────────────│  Process Creation   │
-          │ Windows Security  │                │  Network Connections│
-          │ PowerShell Logs   │                │  File Events        │
-          │ System Logs       │                │  Registry Events    │
-          └─────────▲─────────┘                └────────────────────┘
-                    │ Simulated activity
-          ┌─────────┴──────────┐
-          │      KALI VM       │
-          │   ATTACKER / LAB   │
-          │ Recon • Logins     │
-          │ PowerShell • Users │
-          └────────────────────┘
-```
+![Windows Endpoint Detection & IR Lab Architecture](architecture/architecture.png)
 
 Splunk runs on the host machine. The Windows VM (`WIN-LAB-01`,
 `192.168.56.10`) and Kali VM (`192.168.56.20`) sit on an isolated
@@ -142,6 +108,48 @@ end-states:
    (`Source_Network_Address` not reflecting the true attacker IP for
    NTLM-authenticated logons) rather than assuming every log field is
    trustworthy at face value.
+
+## Challenges & Fixes
+
+Every one of these was hit for real during this build, not anticipated in
+advance. Full root-cause detail for each is in
+[`docs/lessons-learned.md`](docs/lessons-learned.md).
+
+| Challenge | Root Cause | Fix |
+|---|---|---|
+| Sysmon events never reached Splunk, while every other log source worked fine | The forwarder's service account (`NT SERVICE\SplunkForwarder`) had no read access to the Sysmon event channel's ACL — a separate permission set from Security/System/Application logs | Added the forwarder's service SID to the Sysmon channel's ACL with `wevtutil sl ... /ca:` |
+| SMB port 445 showed `filtered` despite a correct, enabled firewall rule | The host-only network adapter was classified as **Public** by Windows, which disables several default sharing rules regardless of custom rules added alongside them | Reclassified the adapter as **Private** with `Set-NetConnectionProfile` |
+| Valid admin credentials authenticated over SMB, but every WMI-based remote execution method (`wmiexec`, `mmcexec`) failed with `rpc_s_access_denied` | SMB (445) and RPC/DCOM (135 + dynamic ports) are separate service surfaces; only SMB was exposed between the lab VMs | Executed payloads locally on the target VM instead — endpoint telemetry is identical either way, and it surfaced a real, documentable lateral-movement boundary |
+| Event timestamps in Splunk's raw text were 2 hours off from the host | VM and host were on different Windows time zones; Splunk's internal `_time` was correct, but the embedded raw event text wasn't | Matched the VM's time zone to the Splunk host with `Set-TimeZone` |
+| A masquerading detection (filename vs. compiled binary identity) produced 17 false positives on an idle VM | Some processes report `OriginalFileName` as a literal `"-"`; legitimate Microsoft installers intentionally ship with a different internal name than their public filename; some system binaries have no file extension in their metadata at all | Iterated through three versions of the query, each fixing one root cause, down to a single true positive — full before/after in [`investigations/INC-002-masquerading-parentchild.md`](investigations/INC-002-masquerading-parentchild.md) |
+| The brute-force attack was only visible in one telemetry source | Sysmon's default (SwiftOnSecurity) configuration excludes common file-sharing ports from network connection logging, so Event ID 3 never captured the inbound SMB traffic | Documented as a genuine coverage gap rather than treated as solved; informs the Zeek/Suricata item in the V2 roadmap below |
+| Account and host shared the same name, making early logs ambiguous to read | Accepted Windows Setup's default local account name, which matched the computer name | Created a dedicated `lab-user` account and disabled the original |
+
+## What I'd Do Differently Next Time
+
+- **Separate the attacker-facing account from the admin account earlier.**
+  Several scenarios ended up reusing `lab-user` (an administrator) for
+  actions that would more realistically come from a lower-privileged,
+  already-compromised account. A dedicated mid-privilege "beachhead"
+  account would make the later scenarios more realistic.
+- **Open RPC/DCOM deliberately, as its own documented decision**, rather
+  than discovering mid-scenario that it was closed. Either choice (open it
+  for realistic lateral movement, or keep it closed and document the
+  resulting boundary) is defensible — the goal next time is to decide it
+  up front rather than react to it.
+- **Build the masquerading detection against a wider time window from the
+  start.** The first "clean" version looked solid on a 15-minute window
+  and only revealed its true false-positive surface once tested against
+  60 minutes of activity. Testing detections against a longer baseline
+  earlier would have caught this sooner.
+- **Capture every screenshot in the same session as the finding**, rather
+  than batching them at the end. A few were skipped or had to be re-run
+  later because the exact underlying events had aged out of the default
+  search window.
+- **Decide the account-naming convention before generating any telemetry**,
+  not after. The account/hostname collision was a small thing to fix, but
+  it would have been free to avoid entirely with five extra minutes of
+  planning at the start.
 
 ## Environment
 
